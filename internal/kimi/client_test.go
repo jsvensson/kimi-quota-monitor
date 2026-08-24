@@ -37,7 +37,7 @@ func TestClientUsages(t *testing.T) {
 		t.Fatalf("Usages() error = %v", err)
 	}
 
-	if u.Usage.Limit != 5000 || u.Usage.Remaining != 3770 {
+	if u.Usage.Limit != 5000 || *u.Usage.Remaining != 3770 {
 		t.Errorf("weekly quota = %+v, want limit 5000, remaining 3770", u.Usage)
 	}
 	if len(u.Limits) != 1 {
@@ -46,7 +46,7 @@ func TestClientUsages(t *testing.T) {
 	if u.Limits[0].Window.Duration != 300 {
 		t.Errorf("window duration = %v, want 300", u.Limits[0].Window.Duration)
 	}
-	if u.Limits[0].Detail.Limit != 200 || u.Limits[0].Detail.Remaining != 155 {
+	if u.Limits[0].Detail.Limit != 200 || *u.Limits[0].Detail.Remaining != 155 {
 		t.Errorf("5h quota = %+v, want limit 200, remaining 155", u.Limits[0].Detail)
 	}
 }

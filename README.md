@@ -5,17 +5,17 @@ Polls the [Kimi Code](https://www.kimi.com/code/) quota API at a configurable in
 ## How it works
 
 1. Every `POLL_INTERVAL`, the service calls `GET https://api.kimi.com/coding/v1/usages` with the API key.
-2. It maps the response to a JSON object that reports only the current used value for each quota window and publishes it as a **retained** QoS 1 message to `MQTT_TOPIC`:
+2. It maps the response to a JSON object that reports the remaining quota for each window and publishes it as a **retained** QoS 1 message to `MQTT_TOPIC`:
 
    ```json
-   {"5h": 45, "7d": 93}
+   {"5h": 0, "7d": 7}
    ```
 
-   - `7d`: weekly used value (`usage` in the API response)
-   - `5h`: 5-hour rolling-window used value (`limits` in the API response); omitted if the API reports no such window
+   - `7d`: weekly remaining value (`usage` in the API response)
+   - `5h`: 5-hour rolling-window remaining value (`limits` in the API response); omitted if the API reports no such window
 3. Fetch or publish failures are logged and retried on the next interval. The retained message stays on the broker, so consumers keep the last known values.
 
-> Note: the payload was previously `[used, limit]` arrays. Since Kimi Code reports these windows as simple percentages, it now sends only the used value. The ESP32 consumer must be updated to expect numbers instead of arrays.
+> Note: the payload was previously `[used, limit]` arrays, then a single used percentage. Since the values are simple percentages, it now sends the remaining percentage. The ESP32 consumer must be updated to expect numbers instead of arrays.
 
 ## Configuration
 

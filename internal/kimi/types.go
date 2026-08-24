@@ -17,18 +17,33 @@ type Usages struct {
 // Quota describes a quota window with a limit and the remaining amount.
 type Quota struct {
 	Limit     Number    `json:"limit"`
-	Used      Number    `json:"used"`
-	Remaining Number    `json:"remaining"`
+	Used      *Number   `json:"used"`
+	Remaining *Number   `json:"remaining"`
 	ResetTime time.Time `json:"resetTime"`
 }
 
 // UsedAmount returns the used amount of the quota.
 // It prefers the explicit "used" field and falls back to limit - remaining.
 func (q Quota) UsedAmount() int64 {
-	if q.Used > 0 {
-		return int64(q.Used)
+	if q.Used != nil {
+		return int64(*q.Used)
 	}
-	return int64(q.Limit - q.Remaining)
+	if q.Remaining != nil {
+		return int64(q.Limit - *q.Remaining)
+	}
+	return int64(q.Limit)
+}
+
+// RemainingAmount returns the remaining amount of the quota.
+// It prefers the explicit "remaining" field and falls back to limit - used.
+func (q Quota) RemainingAmount() int64 {
+	if q.Remaining != nil {
+		return int64(*q.Remaining)
+	}
+	if q.Used != nil {
+		return int64(q.Limit - *q.Used)
+	}
+	return int64(q.Limit)
 }
 
 // Rate describes a rolling rate-limit window.

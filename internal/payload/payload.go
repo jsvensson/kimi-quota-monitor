@@ -15,15 +15,15 @@ const LabelFiveHour = "5h"
 const LabelWeekly = "7d"
 
 // FromUsages builds the MQTT payload from a Usages response.
-// The payload maps window labels to the current used value only,
-// e.g. {"5h":45,"7d":1230}. The 5h entry is omitted if the response
+// The payload maps window labels to the current remaining value only,
+// e.g. {"5h":155,"7d":3770}. The 5h entry is omitted if the response
 // has no 5-hour rate-limit window.
 func FromUsages(u kimi.Usages) ([]byte, error) {
 	p := map[string]int64{
-		LabelWeekly: u.Usage.UsedAmount(),
+		LabelWeekly: u.Usage.RemainingAmount(),
 	}
 	if q, ok := fiveHourQuota(u); ok {
-		p[LabelFiveHour] = q.UsedAmount()
+		p[LabelFiveHour] = q.RemainingAmount()
 	}
 	return json.Marshal(p)
 }
