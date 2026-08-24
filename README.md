@@ -1,21 +1,21 @@
 # kimi-quota-monitor
 
-Polls the [Kimi Code](https://www.kimi.com/code/) quota API at a configurable interval and publishes the used/limit pairs to an MQTT broker. Built to feed the [esp32-c6-llm-quota](https://github.com/jsvensson/esp32-c6-llm-quota) display.
+Polls the [Kimi Code](https://www.kimi.com/code/) quota API at a configurable interval and publishes quota information to an MQTT broker. Built to feed the [esp32-c6-llm-quota](https://github.com/jsvensson/esp32-c6-llm-quota) display.
 
 ## How it works
 
-1. Every `POLL_INTERVAL`, the service calls `GET https://api.kimi.com/coding/v1/usages` with the API key.
-2. It maps the response to a JSON object that reports the remaining quota for each window and publishes it as a **retained** QoS 1 message to `MQTT_TOPIC`:
+1. Every `POLL_INTERVAL` (defined as [Go duration strings](https://pkg.go.dev/time#ParseDuration)), the service calls `GET https://api.kimi.com/coding/v1/usages` with the API key.
+2. It maps the response to a JSON object that reports the remaining quota percentage and reset timestamp for each window, and publishes it as a **retained** QoS 1 message to `MQTT_TOPIC`:
 
    ```json
-   {"5h": 0, "7d": 7}
+   {"5h": {"pct": 0, "resets_at": 1756340000}, "7d": {"pct": 7, "resets_at": 1756340000}}
    ```
 
-   - `7d`: weekly remaining value (`usage` in the API response)
-   - `5h`: 5-hour rolling-window remaining value (`limits` in the API response); omitted if the API reports no such window
+   - `7d`: weekly remaining percentage and reset time (`usage` in the API response)
+   - `5h`: 5-hour rolling-window remaining percentage and reset time (`limits` in the API response); omitted if the API reports no such window
 3. Fetch or publish failures are logged and retried on the next interval. The retained message stays on the broker, so consumers keep the last known values.
 
-> Note: the payload was previously `[used, limit]` arrays, then a single used percentage. Since the values are simple percentages, it now sends the remaining percentage. The ESP32 consumer must be updated to expect numbers instead of arrays.
+> Note: the payload format has changed from `[used, limit]` arrays to a single percentage, and now to `{"pct": <remaining>, "resets_at": <unix epoch>}` objects. The ESP32 consumer must be updated to expect objects.
 
 ## Configuration
 
