@@ -1,0 +1,4 @@
+/kimi-quota-monitor
+.env
+env
+*.log
