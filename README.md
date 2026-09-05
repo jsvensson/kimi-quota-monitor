@@ -14,6 +14,7 @@ Polls the [Kimi Code](https://www.kimi.com/code/) quota API at a configurable in
    - `7d`: weekly remaining value (`usage` in the API response)
    - `5h`: 5-hour rolling-window remaining value (`limits` in the API response); omitted if the API reports no such window
 3. Fetch or publish failures are logged and retried on the next interval. The retained message stays on the broker, so consumers keep the last known values.
+4. If `HTTP_ADDR` is set, the same JSON body is also served at `GET http://<HTTP_ADDR>/quota`. The endpoint returns `503 Service Unavailable` until the first successful poll.
 
 > Note: the payload was previously `[used, limit]` arrays, then a single used percentage. Since the values are simple percentages, it now sends the remaining percentage. The ESP32 consumer must be updated to expect numbers instead of arrays.
 
@@ -31,6 +32,7 @@ All configuration is via environment variables:
 | `MQTT_TOPIC` | `quota/llm` | Topic to publish to |
 | `MQTT_USERNAME` | — | Optional broker username |
 | `MQTT_PASSWORD` | — | Optional broker password |
+| `HTTP_ADDR` | — | Optional listen address for the HTTP endpoint, e.g. `:8080`; unset disables it |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 
 Get an API key from the Kimi Code console. Note: this is a **Kimi Code** key (`sk-kimi-xxx`), not a Kimi open platform key (`sk-xxx`) — they are not interchangeable.
@@ -54,6 +56,8 @@ docker run --rm \
   kimi-quota-monitor
 ```
 
+To also expose the HTTP endpoint, add `-p 8080:8080 -e HTTP_ADDR=:8080`.
+
 The Dockerfile sets example defaults for the non-secret variables (`POLL_INTERVAL`, `MQTT_TOPIC`, and so on). Override them with `-e` or `--env-file`.
 
 ## Verify
@@ -62,6 +66,12 @@ Watch the broker to confirm messages arrive:
 
 ```sh
 mosquitto_sub -h 192.168.1.10 -t quota/llm -v
+```
+
+If `HTTP_ADDR` is set, fetch the same payload over HTTP:
+
+```sh
+curl localhost:8080/quota
 ```
 
 ## Test
