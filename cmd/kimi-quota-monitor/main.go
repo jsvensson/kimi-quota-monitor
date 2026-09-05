@@ -1,5 +1,6 @@
 // Command kimi-quota-monitor polls the Kimi Code quota API and publishes
-// the used/limit pairs to an MQTT broker.
+// the used/limit pairs to an MQTT broker. It can also serve the same
+// payload over HTTP.
 package main
 
 import (
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jsvensson/kimi-quota-monitor/internal/config"
+	"github.com/jsvensson/kimi-quota-monitor/internal/httpapi"
 	"github.com/jsvensson/kimi-quota-monitor/internal/kimi"
 	"github.com/jsvensson/kimi-quota-monitor/internal/mqtt"
 	"github.com/jsvensson/kimi-quota-monitor/internal/payload"
@@ -47,13 +49,23 @@ func run() error {
 
 	client := kimi.NewClient(cfg.BaseURL, cfg.APIKey)
 
+	srv := httpapi.NewServer(cfg.HTTPAddr)
+	if len(cfg.HTTPAddr) > 0 {
+		go func() {
+			if err := srv.Run(ctx); err != nil {
+				slog.Error("HTTP server", "error", err)
+			}
+		}()
+	}
+
 	slog.Info("started",
 		"broker", cfg.MQTTBroker,
 		"topic", cfg.MQTTTopic,
 		"interval", cfg.PollInterval,
+		"http_addr", cfg.HTTPAddr,
 	)
 
-	publish(ctx, client, pub)
+	publish(ctx, client, pub, srv)
 
 	ticker := time.NewTicker(cfg.PollInterval)
 	defer ticker.Stop()
@@ -63,14 +75,14 @@ func run() error {
 			slog.Info("stopped")
 			return nil
 		case <-ticker.C:
-			publish(ctx, client, pub)
+			publish(ctx, client, pub, srv)
 		}
 	}
 }
 
-// publish fetches the quota and publishes it to MQTT.
+// publish fetches the quota and publishes it to MQTT and the HTTP server.
 // Errors are logged; the poll loop continues.
-func publish(ctx context.Context, client *kimi.Client, pub *mqtt.Publisher) {
+func publish(ctx context.Context, client *kimi.Client, pub *mqtt.Publisher, srv *httpapi.Server) {
 	usages, err := client.Usages(ctx)
 	if err != nil {
 		slog.Warn("fetch quota", "error", err)
@@ -82,6 +94,7 @@ func publish(ctx context.Context, client *kimi.Client, pub *mqtt.Publisher) {
 		slog.Warn("build payload", "error", err)
 		return
 	}
+	srv.SetPayload(data)
 
 	if err := pub.Publish(data); err != nil {
 		slog.Warn("publish", "error", err)

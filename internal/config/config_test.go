@@ -24,6 +24,24 @@ func TestLoad(t *testing.T) {
 	if cfg.PollInterval.String() != "5m0s" {
 		t.Errorf("PollInterval = %v, want 5m", cfg.PollInterval)
 	}
+	if len(cfg.HTTPAddr) > 0 {
+		t.Errorf("HTTPAddr = %q, want empty default", cfg.HTTPAddr)
+	}
+}
+
+// TestLoadHTTPAddr verifies that Load reads HTTP_ADDR when set.
+func TestLoadHTTPAddr(t *testing.T) {
+	t.Setenv("KIMI_API_KEY", "sk-kimi-test")
+	t.Setenv("MQTT_BROKER", "tcp://localhost:1883")
+	t.Setenv("HTTP_ADDR", ":8080")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.HTTPAddr != ":8080" {
+		t.Errorf("HTTPAddr = %q, want %q", cfg.HTTPAddr, ":8080")
+	}
 }
 
 // TestLoadMissingRequired verifies that Load fails when a required

@@ -21,6 +21,8 @@ type Config struct {
 	MQTTUsername string `env:"MQTT_USERNAME"`
 	MQTTPassword string `env:"MQTT_PASSWORD"`
 
+	HTTPAddr string `env:"HTTP_ADDR"` // optional; empty disables the HTTP server
+
 	LogLevel string `env:"LOG_LEVEL" envDefault:"info"`
 }
 
