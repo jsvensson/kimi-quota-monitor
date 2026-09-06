@@ -13,7 +13,7 @@ Polls the [Kimi Code](https://www.kimi.com/code/) quota API at a configurable in
 
    - `7d`: weekly remaining percentage and reset time (`usage` in the API response)
    - `5h`: 5-hour rolling-window remaining percentage and reset time (`limits` in the API response); omitted if the API reports no such window
-3. Fetch or publish failures are logged and retried on the next interval. The retained message stays on the broker, so consumers keep the last known values.
+3. By default, the payload is only published when it differs from the last published one — the retained message keeps consumers updated. Set `MQTT_REPUBLISH=true` to publish every interval regardless. Fetch or publish failures are logged and retried on the next interval.
 4. If `HTTP_ADDR` is set, the same JSON body is also served at `GET http://<HTTP_ADDR>/quota`. The endpoint returns `503 Service Unavailable` until the first successful poll.
 
 > Note: the payload format has changed from `[used, limit]` arrays to a single percentage, and now to `{"pct": <remaining>, "resets_at": <unix epoch>}` objects. The ESP32 consumer must be updated to expect objects.
@@ -32,6 +32,7 @@ All configuration is via environment variables:
 | `MQTT_TOPIC` | `quota/llm` | Topic to publish to |
 | `MQTT_USERNAME` | — | Optional broker username |
 | `MQTT_PASSWORD` | — | Optional broker password |
+| `MQTT_REPUBLISH` | `false` | Publish every interval even when the payload is unchanged; by default only changes are published since the message is retained |
 | `HTTP_ADDR` | — | Optional listen address for the HTTP endpoint, e.g. `:8080`; unset disables it |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 

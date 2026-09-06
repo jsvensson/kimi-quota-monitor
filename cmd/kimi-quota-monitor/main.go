@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
@@ -62,10 +63,12 @@ func run() error {
 		"broker", cfg.MQTTBroker,
 		"topic", cfg.MQTTTopic,
 		"interval", cfg.PollInterval,
+		"republish", cfg.MQTTRepublish,
 		"http_addr", cfg.HTTPAddr,
 	)
 
-	publish(ctx, client, pub, srv)
+	var lastPublished []byte
+	publish(ctx, client, pub, srv, cfg.MQTTRepublish, &lastPublished)
 
 	ticker := time.NewTicker(cfg.PollInterval)
 	defer ticker.Stop()
@@ -75,14 +78,16 @@ func run() error {
 			slog.Info("stopped")
 			return nil
 		case <-ticker.C:
-			publish(ctx, client, pub, srv)
+			publish(ctx, client, pub, srv, cfg.MQTTRepublish, &lastPublished)
 		}
 	}
 }
 
 // publish fetches the quota and publishes it to MQTT and the HTTP server.
+// When republish is false and the payload matches the last published one,
+// the MQTT publish is skipped; the retained message keeps consumers updated.
 // Errors are logged; the poll loop continues.
-func publish(ctx context.Context, client *kimi.Client, pub *mqtt.Publisher, srv *httpapi.Server) {
+func publish(ctx context.Context, client *kimi.Client, pub *mqtt.Publisher, srv *httpapi.Server, republish bool, lastPublished *[]byte) {
 	usages, err := client.Usages(ctx)
 	if err != nil {
 		slog.Warn("fetch quota", "error", err)
@@ -96,9 +101,15 @@ func publish(ctx context.Context, client *kimi.Client, pub *mqtt.Publisher, srv 
 	}
 	srv.SetPayload(data)
 
+	if !republish && bytes.Equal(data, *lastPublished) {
+		slog.Debug("payload unchanged, skipping publish")
+		return
+	}
+
 	if err := pub.Publish(data); err != nil {
 		slog.Warn("publish", "error", err)
 		return
 	}
+	*lastPublished = data
 	slog.Info("published", "payload", string(data))
 }

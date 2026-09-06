@@ -18,8 +18,9 @@ type Config struct {
 	MQTTBroker   string `env:"MQTT_BROKER,required,notEmpty"`
 	MQTTClientID string `env:"MQTT_CLIENT_ID" envDefault:"kimi-quota-monitor"`
 	MQTTTopic    string `env:"MQTT_TOPIC" envDefault:"quota/llm"`
-	MQTTUsername string `env:"MQTT_USERNAME"`
-	MQTTPassword string `env:"MQTT_PASSWORD"`
+	MQTTUsername  string `env:"MQTT_USERNAME"`
+	MQTTPassword  string `env:"MQTT_PASSWORD"`
+	MQTTRepublish bool   `env:"MQTT_REPUBLISH" envDefault:"false"`
 
 	HTTPAddr string `env:"HTTP_ADDR"` // optional; empty disables the HTTP server
 
