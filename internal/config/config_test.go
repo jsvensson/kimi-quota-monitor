@@ -27,6 +27,24 @@ func TestLoad(t *testing.T) {
 	if len(cfg.HTTPAddr) > 0 {
 		t.Errorf("HTTPAddr = %q, want empty default", cfg.HTTPAddr)
 	}
+	if cfg.MQTTRepublish {
+		t.Error("MQTTRepublish = true, want default false")
+	}
+}
+
+// TestLoadRepublish verifies that Load reads MQTT_REPUBLISH when set.
+func TestLoadRepublish(t *testing.T) {
+	t.Setenv("KIMI_API_KEY", "sk-kimi-test")
+	t.Setenv("MQTT_BROKER", "tcp://localhost:1883")
+	t.Setenv("MQTT_REPUBLISH", "true")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if !cfg.MQTTRepublish {
+		t.Error("MQTTRepublish = false, want true")
+	}
 }
 
 // TestLoadHTTPAddr verifies that Load reads HTTP_ADDR when set.
